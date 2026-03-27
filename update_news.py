@@ -2,27 +2,52 @@ import os
 import google.generativeai as genai
 from datetime import datetime
 
-# 1. 配置 Gemini AI
+# 1. 配置 Gemini API
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash')
 
-def get_ai_insight():
-    # 这里你可以接入 RSS 订阅源，或者简单让 Gemini 搜索最新资讯
-    prompt = "请帮我搜集2026年3月26日全球AI相关的10条国内动态、10条国外动态，并分析AI相关股票的买卖建议。请直接以HTML格式输出内容。"
-    response = model.generate_content(prompt)
-    return response.text
+# 修复 404 报错：手动指定更稳定的模型名称
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-def update_html(content):
+def get_ai_content():
+    prompt = """
+    请作为一名专业的财经与科技分析师，完成以下任务：
+    1. 搜索并整理2026年3月26日最新的AI资讯：国内10条，国外10条。
+    2. 提供AI相关股票（NVDA, MSFT, AAPL等）的买卖建议。
+    3. 特别包含：卫龙(09985.HK)2025年报深度解读，包括每股0.17元的派息分析和持股建议。
+    4. 输出要求：只输出 HTML 代码片段，使用 <div> 和 <li> 标签，不要包含 <html> 或 <body>。
+    """
+    try:
+        # 使用最通用的生成方法
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"<div class='p-4 text-red-500'>内容抓取失败: {str(e)}</div>"
+
+def update_web_page(new_content):
+    # 读取原始模板
+    if not os.path.exists("index.html"):
+        print("未找到 index.html 文件")
+        return
+
     with open("index.html", "r", encoding="utf-8") as f:
-        html = f.read()
-    
-    # 这里使用简单的字符串替换，将 AI 生成的内容填入 HTML 模板
-    # 实际操作中可以用 BeautifulSoup 等库进行精准替换
-    new_html = html.replace("", content)
-    
+        content = f.read()
+
+    # 替换占位符
+    placeholder = ""
+    if placeholder in content:
+        # 清除可能存在的旧 AI 内容，保持模板干净
+        # 这种逻辑会保留头部和尾部，只替换中间部分
+        parts = content.split(placeholder)
+        updated_content = parts[0] + placeholder + "\n" + new_content + "\n" + parts[1]
+    else:
+        # 如果没找到占位符，直接追加（保底方案）
+        updated_content = content + "\n" + new_content
+
     with open("index.html", "w", encoding="utf-8") as f:
-        f.write(new_html)
+        f.write(updated_content)
 
 if __name__ == "__main__":
-    content = get_ai_insight()
-    update_html(content)
+    print("正在获取最新 AI 资讯和卫龙年报分析...")
+    news_html = get_ai_content()
+    update_web_page(news_html)
+    print("网页内容已更新。")
