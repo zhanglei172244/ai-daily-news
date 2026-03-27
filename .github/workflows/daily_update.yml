@@ -30,7 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # 即使 requirements.txt 还没改，这里也会确保安装新库
-          pip install google-genai --force-reinstall
+          pip install requests
 
       - name: Run Update Script
         env:
