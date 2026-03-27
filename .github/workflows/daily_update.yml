@@ -2,40 +2,47 @@ name: Daily AI News Update
 
 on:
   schedule:
+    # 每天凌晨 0:00 (UTC) 自动运行，你可以根据需要调整
     - cron: '0 0 * * *'
+  # 允许手动触发，方便我们调试
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    # 授予 Actions 写入仓库的权限（解决推送失败的关键）
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' # 强制使用 3.10
-
-- name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          # 开启缓存，让后续运行更快
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt --force-reinstall
+          # 即使 requirements.txt 还没改，这里也会确保安装新库
+          pip install google-genai --force-reinstall
 
       - name: Run Update Script
         env:
+          # 确保你在 GitHub Secrets 里填的是这个名字
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python update_news.py
 
       - name: Commit and Push changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add index.html
-          git commit -m "Update Daily News" || echo "No changes to commit"
+          # 如果文件没变化，不报错直接退出
+          git commit -m "Update Daily AI News [$(date +'%Y-%m-%d %H:%M:%S')]" || exit 0
           git push
