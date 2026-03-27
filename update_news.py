@@ -18,15 +18,15 @@ def get_ai_content():
             print(f"尝试使用模型: {name}...")
             model = genai.GenerativeModel(name)
             response = model.generate_content(prompt)
-            # 只要成功获取到内容，立刻返回
             if response.text:
-                print(f"✅ 成功通过 {name} 获取内容")
                 return response.text.replace("```html", "").replace("```", "").strip()
         except Exception as e:
-            print(f"❌ 模型 {name} 失败: {str(e)}")
+            # 修改这一行，把具体的错误原因打印到网页上！
+            print(f"❌ 模型 {name} 失败详情: {str(e)}")
+            error_detail = str(e) # 记录下最后一次报错的细节
             continue
             
-    return "资讯获取失败：所有备选模型均不可用。请检查 API Key 权限。"
+    return f"资讯获取失败。原因详情: {error_detail}" # 把这个详情显示在网页上
 
 def generate_full_html(ai_text):
     today_str = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S') # 加上秒，确保内容永远在变
