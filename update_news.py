@@ -4,7 +4,7 @@ from datetime import datetime
 
 # 1. 配置 Gemini API
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def get_ai_content():
     # 这里的指令要求 AI 必须返回纯粹的内容，我会用代码给它套上精美的皮肤
