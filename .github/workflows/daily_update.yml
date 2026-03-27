@@ -17,10 +17,15 @@ jobs:
         with:
           python-version: '3.10' # 强制使用 3.10
 
+- name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-generativeai==0.8.3 --force-reinstall # 强制覆盖安装
+          pip install -r requirements.txt --force-reinstall
 
       - name: Run Update Script
         env:
