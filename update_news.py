@@ -5,31 +5,36 @@ from datetime import datetime
 
 def get_ai_content():
     api_key = os.environ.get("GEMINI_API_KEY")
-    # 强制锁定 v1 正式接口路径，彻底绕过 v1beta
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    # 尝试清单：先试 1.5-flash，再试 1.0-pro (最稳兼容版)
+    models_to_try = [
+        "gemini-1.5-flash",
+        "gemini-pro"
+    ]
     
     today = datetime.now().strftime('%Y-%m-%d')
-    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要HTML标签。"
-    
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
-    headers = {'Content-Type': 'application/json'}
+    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字。"
 
-    try:
-        print("正在通过最原始的 HTTP 方式访问 v1 接口...")
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        result = response.json()
+    for model in models_to_try:
+        # 尝试 v1 接口
+        url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
         
-        # 即使报错，也会打印出详细的 JSON 信息，方便我们最后排查
-        if 'candidates' in result:
-            return result['candidates'][0]['content']['parts'][0]['text'].strip()
-        else:
-            return f"获取失败。服务器返回：{json.dumps(result)}"
-    except Exception as e:
-        return f"网络连接异常: {str(e)}"
+        try:
+            print(f"正在尝试模型: {model} ...")
+            response = requests.post(url, json=payload, timeout=30)
+            result = response.json()
+            
+            if 'candidates' in result:
+                return result['candidates'][0]['content']['parts'][0]['text'].strip()
+            else:
+                print(f"模型 {model} 暂不可用，尝试下一个...")
+                continue
+        except Exception as e:
+            print(f"请求 {model} 异常: {e}")
+            continue
+            
+    return "资讯获取失败。请检查：1.API Key是否正确；2.Google AI Studio中是否开启了该模型权限。"
 
 def generate_full_html(ai_text):
     today_str = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')
@@ -57,7 +62,6 @@ def generate_full_html(ai_text):
 
 if __name__ == "__main__":
     content = get_ai_content()
-    html_page = generate_full_html(content)
     with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html_page)
+        f.write(generate_full_html(content))
     print("✅ 尝试完成！")
