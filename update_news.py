@@ -5,11 +5,11 @@ from datetime import datetime
 
 def get_ai_content():
     api_key = os.environ.get("GEMINI_API_KEY")
-    # 强制锁定 v1 正式接口，彻底绕过 v1beta
+    # 强制锁定 v1 正式接口路径，彻底绕过 v1beta
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     today = datetime.now().strftime('%Y-%m-%d')
-    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字内容。"
+    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要HTML标签。"
     
     payload = {
         "contents": [{
@@ -19,17 +19,17 @@ def get_ai_content():
     headers = {'Content-Type': 'application/json'}
 
     try:
-        print("正在直接通过 HTTP 访问 Gemini v1 接口...")
+        print("正在通过最原始的 HTTP 方式访问 v1 接口...")
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         result = response.json()
         
-        # 解析返回的 JSON 数据
+        # 即使报错，也会打印出详细的 JSON 信息，方便我们最后排查
         if 'candidates' in result:
             return result['candidates'][0]['content']['parts'][0]['text'].strip()
         else:
-            return f"获取失败。API返回：{json.dumps(result)}"
+            return f"获取失败。服务器返回：{json.dumps(result)}"
     except Exception as e:
-        return f"网络请求异常: {str(e)}"
+        return f"网络连接异常: {str(e)}"
 
 def generate_full_html(ai_text):
     today_str = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')
@@ -60,4 +60,4 @@ if __name__ == "__main__":
     html_page = generate_full_html(content)
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_page)
-    print("✅ 任务最终完成！")
+    print("✅ 尝试完成！")
