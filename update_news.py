@@ -29,7 +29,7 @@ def get_ai_content():
     return "资讯获取失败：所有备选模型均不可用。请检查 API Key 权限。"
 
 def generate_full_html(ai_text):
-    today_str = datetime.now().strftime('%Y年%m月%d日')
+    today_str = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S') # 加上秒，确保内容永远在变
     formatted_text = ai_text.replace("\n", "<br>")
     
     return f"""
@@ -44,9 +44,10 @@ def generate_full_html(ai_text):
     </head>
     <body class="p-4 md:p-8">
         <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden">
+            <div style="display:none">{today_str}</div> 
             <header class="bg-slate-900 text-white p-6">
                 <h1 class="text-2xl font-bold">AI 资讯每日精选</h1>
-                <p class="text-slate-400 mt-2">更新日期：{today_str}</p>
+                <p class="text-slate-400 mt-2">更新时间：{today_str}</p>
             </header>
             <main class="p-6 md:p-10 content-box text-slate-700">{formatted_text}</main>
             <footer class="bg-slate-50 p-6 text-center text-slate-400 text-sm border-t">由 Gemini AI 自动化生成</footer>
