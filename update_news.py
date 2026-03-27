@@ -1,13 +1,25 @@
 import os
-import google.generativeai as genai
+import sys
+import subprocess
+
+# --- 暴力补丁：如果库版本不对，脚本自发升级 ---
+try:
+    import google.generativeai as genai
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "google-generativeai==0.8.3"])
+    import google.generativeai as genai
+# ---------------------------------------
+
 from datetime import datetime
 
-# 1. 配置 API 密钥
+# 配置 API 密钥
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 def get_ai_content():
-    # 显式使用这种写法，加上 models/ 前缀
-    model_names = ['models/gemini-1.5-flash', 'models/gemini-pro']
+    # 显式指定最新模型的全名
+    model_names = ['gemini-1.5-flash', 'gemini-1.5-pro']
+    
+    # ... 后面的逻辑保持不变 ...
     
     today = datetime.now().strftime('%Y-%m-%d')
     prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要HTML标签。"
