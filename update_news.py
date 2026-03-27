@@ -7,40 +7,62 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
 def get_ai_content():
-    # 增加搜索指令，确保包含最新的卫龙信息
-    prompt = f"今天是{datetime.now().strftime('%Y-%m-%d')}。请整理AI动态（国内10条/国外10条），包含NVDA/MSFT股价简析，以及卫龙(09985.HK)2025年报派息分析。请直接输出HTML片段（div/li），不要有代码块符号。"
+    # 这里的指令要求 AI 必须返回纯粹的内容，我会用代码给它套上精美的皮肤
+    today = datetime.now().strftime('%Y-%m-%d')
+    prompt = f"今天是{today}。请作为财经分析师整理：1.国内AI动态10条；2.国外AI动态10条；3.NVDA/MSFT/AAPL股价建议；4.卫龙(09985.HK)2025年报派息0.17元的深度简析。请直接分段输出内容，不要包含HTML标签，不要有代码块符号。"
     try:
         response = model.generate_content(prompt)
-        # 清理 AI 可能带出的 ```html 这种标记
-        content = response.text.replace("```html", "").replace("```", "").strip()
-        return content
+        return response.text
     except Exception as e:
-        return f"<p>资讯生成失败: {str(e)}</p>"
+        return f"资讯获取失败: {str(e)}"
 
-def update_web_page(new_content):
-    if not os.path.exists("index.html"):
-        print("警告：未找到 index.html，正在创建新文件...")
-        content = "<html><body></body></html>"
-    else:
-        with open("index.html", "r", encoding="utf-8") as f:
-            content = f.read()
-
-    placeholder = ""
+def generate_full_html(ai_text):
+    # 这是我为你重新设计的响应式精美模板
+    today_str = datetime.now().strftime('%Y年%m月%d日')
     
-    # 核心逻辑：如果找不到占位符，就强行在文件开头插入一个
-    if placeholder not in content:
-        print("未在 HTML 中找到占位符，正在自动注入...")
-        content = placeholder + content
-
-    # 替换内容
-    parts = content.split(placeholder)
-    updated_content = parts[0] + placeholder + "\n" + new_content + "\n" + parts[1]
-
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(updated_content)
+    # 将 AI 的纯文本简单处理成 HTML 段落
+    formatted_text = ai_text.replace("\n", "<br>")
+    
+    full_html = f"""
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI 资讯日报 - {today_str}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body {{ background-color: #f3f4f6; font-family: sans-serif; }}
+            .content-box {{ white-space: pre-wrap; line-height: 1.8; }}
+        </style>
+    </head>
+    <body class="p-4 md:p-8">
+        <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden">
+            <header class="bg-slate-900 text-white p-6">
+                <h1 class="text-2xl font-bold">AI 资讯每日精选</h1>
+                <p class="text-slate-400 mt-2">更新时间：{today_str}</p>
+            </header>
+            <main class="p-6 md:p-10 content-box text-slate-700">
+                {formatted_text}
+            </main>
+            <footer class="bg-slate-50 p-6 text-center text-slate-400 text-sm border-t">
+                数据由 Gemini AI 驱动生成 · 仅供参考
+            </footer>
+        </div>
+    </body>
+    </html>
+    """
+    return full_html
 
 if __name__ == "__main__":
-    print("正在获取资讯并更新网页...")
-    news_html = get_ai_content()
-    update_web_page(news_html)
-    print("✅ 网页更新成功！")
+    print("正在通过 Gemini 获取今日最新资讯...")
+    raw_ai_text = get_ai_content()
+    
+    print("正在生成全量网页文件...")
+    final_html = generate_full_html(raw_ai_text)
+    
+    # 直接覆盖写入 index.html，不玩替换，简单粗暴最有效
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(final_html)
+        
+    print("✅ 任务完成！index.html 已重新生成。")
