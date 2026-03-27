@@ -15,16 +15,16 @@ def get_ai_content():
     error_detail = ""
     for name in model_names:
         try:
-            print(f"正在尝试模型: {name} (API v1)...")
-            # --- 关键修改：显式指定 API 版本为 'v1' ---
+            print(f"正在尝试模型: {name}...")
+            # 关键：显式通过 model_name 参数传入
             model = genai.GenerativeModel(model_name=name) 
             response = model.generate_content(prompt)
-            # ---------------------------------------
             if response.text:
-                return response.text.replace("```html", "").replace("```", "").strip()
+                return response.text.strip()
         except Exception as e:
+            # 这里会捕获具体的错误详情
             error_detail = str(e)
-            print(f"❌ {name} 失败: {error_detail}")
+            print(f"❌ {name} 失败详情: {error_detail}")
             continue
             
     return f"获取失败。最后一次报错详情: {error_detail}"
