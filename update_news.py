@@ -1,34 +1,52 @@
 import os
+import sys
+import subprocess
 from datetime import datetime
+
+# --- 1. 暴力补丁：强制在运行瞬间环境脱胎换骨 ---
+def force_update_env():
+    try:
+        # 尝试清理旧库并安装最新版官方新库
+        subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "google-generativeai"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "google-genai", "--force-reinstall"])
+        print("✅ 环境暴力升级成功！")
+    except Exception as e:
+        print(f"⚠️ 环境升级异常（可能已是最新）: {e}")
+
+# 执行升级
+force_update_env()
+
+# 升级后导入真正的官方新库
 from google import genai
 
 def get_ai_content():
-    # 使用全新的官方客户端
+    # 使用全新的 Client 模式，它默认只走 v1 正式接口
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     
     today = datetime.now().strftime('%Y-%m-%d')
-    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要HTML标签。"
+    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字内容。"
     
     try:
-        # 这个新库会自动选择最稳妥的 v1 接口
+        print("正在通过新版 API 请求资讯...")
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=prompt
         )
-        return response.text.strip()
+        if response.text:
+            return response.text.strip()
     except Exception as e:
-        return f"资讯获取失败。错误详情: {str(e)}"
+        return f"获取失败。报错：{str(e)}"
+    return "未获取到有效内容"
 
 def generate_full_html(ai_text):
+    # 增加时间戳，确保每次内容都有变化，Git 才会允许提交
     today_str = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')
     formatted_text = ai_text.replace("\n", "<br>")
     return f"""
     <!DOCTYPE html>
     <html lang="zh-CN">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI 资讯日报 - {today_str}</title>
+        <meta charset="UTF-8"><title>AI 资讯日报 - {today_str}</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <style>body {{ background-color: #f3f4f6; font-family: sans-serif; }} .content-box {{ white-space: pre-wrap; line-height: 1.8; }}</style>
     </head>
@@ -50,3 +68,4 @@ if __name__ == "__main__":
     html_page = generate_full_html(content)
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_page)
+    print("✅ 任务最终完成！")
