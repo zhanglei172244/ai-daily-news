@@ -7,14 +7,17 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 model = genai.GenerativeModel('gemini-pro')
 
 def get_ai_content():
-    # 这里的指令要求 AI 必须返回纯粹的内容，我会用代码给它套上精美的皮肤
     today = datetime.now().strftime('%Y-%m-%d')
-    prompt = f"今天是{today}。请作为财经分析师整理：1.国内AI动态10条；2.国外AI动态10条；3.NVDA/MSFT/AAPL股价建议；4.卫龙(09985.HK)2025年报派息0.17元的深度简析。请直接分段输出内容，不要包含HTML标签，不要有代码块符号。"
+    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要包含HTML标签或代码块符号。"
     try:
+        # 强制指定版本（如果 SDK 较旧，这行能起作用）
         response = model.generate_content(prompt)
-        return response.text
+        text = response.text
+        # 过滤掉 AI 可能自带的 markdown 标记
+        clean_text = text.replace("```html", "").replace("```", "").strip()
+        return clean_text
     except Exception as e:
-        return f"资讯获取失败: {str(e)}"
+        return f"资讯获取失败，请检查 API 配置或稍后再试。错误信息: {str(e)}"
 
 def generate_full_html(ai_text):
     # 这是我为你重新设计的响应式精美模板
