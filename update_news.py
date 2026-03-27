@@ -2,15 +2,19 @@ import os
 import google.generativeai as genai
 from datetime import datetime
 
-# 1. 强制配置 API 密钥
+# 1. 配置 API 密钥
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
+# --- 关键修改：强制指定使用 v1 接口 ---
+from google.generativeai import types
+# -----------------------------------
+
 def get_ai_content():
-    # 策略：循环尝试不同的模型名称，直到有一个成功为止
-    # 这样可以完美避开不同地区、不同账号对模型名称定义的差异
-    model_names = ['gemini-1.5-flash', 'gemini-pro', 'models/gemini-1.5-flash']
+    # 既然已经升级了库，我们直接用最标准的名称
+    model_name = 'gemini-1.5-flash'
     
     today = datetime.now().strftime('%Y-%m-%d')
+    # ... 剩下的代码保持不变 ...
     prompt = f"今天是{today}。请整理AI动态（国内/国外各10条），包含NVDA股价分析，以及卫龙(09985.HK)2025年报派息0.17元的分析。直接输出内容，不要代码块。"
 
     for name in model_names:
