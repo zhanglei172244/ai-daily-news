@@ -6,7 +6,7 @@ from datetime import datetime
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 def get_ai_content():
-    # 改动点：在这里加上 "models/" 前缀，这是最新版库的强制要求
+    # 显式使用这种写法，加上 models/ 前缀
     model_names = ['models/gemini-1.5-flash', 'models/gemini-pro']
     
     today = datetime.now().strftime('%Y-%m-%d')
@@ -15,18 +15,19 @@ def get_ai_content():
     error_detail = ""
     for name in model_names:
         try:
-            print(f"正在通过 {name} 获取内容...")
-            model = genai.GenerativeModel(name)
-            # 只要库是最新的，这个 generate_content 就会自动走 v1 接口
+            print(f"正在尝试模型: {name} (API v1)...")
+            # --- 关键修改：显式指定 API 版本为 'v1' ---
+            model = genai.GenerativeModel(model_name=name) 
             response = model.generate_content(prompt)
+            # ---------------------------------------
             if response.text:
                 return response.text.replace("```html", "").replace("```", "").strip()
         except Exception as e:
             error_detail = str(e)
-            print(f"❌ {name} 尝试失败: {error_detail}")
+            print(f"❌ {name} 失败: {error_detail}")
             continue
             
-    return f"资讯获取失败。详情: {error_detail}"
+    return f"获取失败。最后一次报错详情: {error_detail}"
 
 def generate_full_html(ai_text):
     # 保持秒数更新，解决 Git 提交报错问题
