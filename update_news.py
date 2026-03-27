@@ -6,30 +6,30 @@ from datetime import datetime
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 def get_ai_content():
-    # --- 关键：必须在这里定义这个名单 ---
-    model_names = ['gemini-1.5-flash', 'gemini-pro']
+    # 改动点：在这里加上 "models/" 前缀，这是最新版库的强制要求
+    model_names = ['models/gemini-1.5-flash', 'models/gemini-pro']
     
     today = datetime.now().strftime('%Y-%m-%d')
-    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要包含HTML标签或代码块符号。"
+    prompt = f"今天是{today}。请整理：1.国内AI动态10条；2.国外AI动态10条；3.卫龙(09985.HK)2025年报派息0.17元的持股建议。直接输出文字，不要HTML标签。"
     
     error_detail = ""
     for name in model_names:
         try:
-            print(f"正在尝试模型: {name}...")
+            print(f"正在通过 {name} 获取内容...")
             model = genai.GenerativeModel(name)
+            # 只要库是最新的，这个 generate_content 就会自动走 v1 接口
             response = model.generate_content(prompt)
             if response.text:
-                print(f"✅ {name} 成功获取内容")
                 return response.text.replace("```html", "").replace("```", "").strip()
         except Exception as e:
             error_detail = str(e)
-            print(f"❌ {name} 失败: {error_detail}")
+            print(f"❌ {name} 尝试失败: {error_detail}")
             continue
             
     return f"资讯获取失败。详情: {error_detail}"
 
 def generate_full_html(ai_text):
-    # 加上秒数确保内容永远在变，Git 才会允许提交
+    # 保持秒数更新，解决 Git 提交报错问题
     today_str = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')
     formatted_text = ai_text.replace("\n", "<br>")
     
@@ -62,4 +62,4 @@ if __name__ == "__main__":
     html_page = generate_full_html(content)
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_page)
-    print("✅ 任务完成！index.html 已重新生成。")
+    print("✅ 任务完成！")
