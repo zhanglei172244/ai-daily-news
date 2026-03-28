@@ -5,10 +5,7 @@ import time
 from datetime import datetime
 
 def get_ai_content():
-    # 从 GitHub Secrets 获取 Key
     api_key = os.environ.get("GEMINI_API_KEY")
-    
-    # 锁定验证成功的 v1beta 接口和 2.0-flash 模型
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     
     today = datetime.now().strftime('%Y-%m-%d')
@@ -20,37 +17,51 @@ def get_ai_content():
         f"请直接输出正文，保持排版整洁，不要包含 Markdown 标签。"
     )
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    # 核心改进：增加安全设置，防止因为内容敏感被拦截导致误报配额错误
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+    }
 
-    # 尝试 3 次，应对 429 (RESOURCE_EXHAUSTED) 配额限制
+    # 尝试 3 次，增加等待时长
+    wait_times = [60, 120, 180] # 第一次失败等 1 分钟，第二次等 2 分钟
+    
     for attempt in range(3):
         try:
             print(f"正在发起请求 (第 {attempt + 1} 次尝试)...")
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=60) # 增加超时时间到 60s
             result = response.json()
             
-            # 状态码 200 表示成功
-            if response.status_code == 200 and 'candidates' in result:
-                print("✅ 内容抓取成功！")
-                return result['candidates'][0]['content']['parts'][0]['text'].strip()
+            if response.status_code == 200:
+                if 'candidates' in result and result['candidates'][0].get('content'):
+                    print("✅ 内容抓取成功！")
+                    return result['candidates'][0]['content']['parts'][0]['text'].strip()
+                else:
+                    # 有时候 200 OK 但 candidate 为空，是因为被安全策略拦截了
+                    return "内容生成被安全策略拦截，请尝试修改 Prompt。"
             
-            # 状态码 429 表示频率太快，需要休息
             elif response.status_code == 429:
-                print(f"⚠️ 触发配额限制，休息 30 秒后重试...")
-                time.sleep(30) 
+                wait_time = wait_times[attempt]
+                print(f"⚠️ 触发配额限制，休息 {wait_time} 秒后重试...")
+                time.sleep(wait_time) 
                 continue
             
             else:
-                # 其他错误则直接返回错误信息
                 error_msg = result.get('error', {}).get('message', '未知错误')
-                return f"获取失败。状态码：{response.status_code}，详情：{error_msg}"
+                print(f"服务器返回错误: {error_msg}")
+                # 即使是其他错误，也建议重试一下，万一是网络抖动
+                time.sleep(10)
+                continue
                 
         except Exception as e:
             print(f"❌ 网络异常: {e}")
-            if attempt < 2:
-                time.sleep(5)
-                continue
-            return f"网络异常，请检查 GitHub 环境: {str(e)}"
+            time.sleep(10)
+            continue
             
     return "抱歉，由于 Google API 免费层配额限制，今日连续 3 次尝试均失败。请过 1 小时后再手动触发。"
 
